@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta 
 from collections import defaultdict
 
 def init_db():
@@ -50,8 +50,9 @@ def get_daily_stats(conn):
         WHERE end IS NOT NULL AND start > date('now', '-30 days')
         GROUP BY DATE(start)
         ORDER BY day
-    """"")
+    """)  
     return c.fetchall()
+
 
 def get_tag_pie_data(conn):
     """Данные для круговой диаграммы по тегам"""
@@ -65,16 +66,21 @@ def get_tag_pie_data(conn):
     """)
     return c.fetchall()
 
-def get_daily_tag_stats(conn):
+def get_daily_tag_stats(conn, date_str):
+    """Статистика по тегам за день для графиков"""
     c = conn.cursor()
     c.execute("""
-        SELECT DATE(start) as day, tag,
-               SUM((strftime('%s', end) - strftime('%s', start)) / 60.0) as minutes
+        SELECT tag, SUM(
+            CASE 
+                WHEN end IS NOT NULL 
+                THEN (julianday(end) - julianday(start)) * 24 * 60
+                ELSE 0 
+            END
+        ) as minutes
         FROM tasks 
-        WHERE end IS NOT NULL AND start > date('now', '-30 days')
-        GROUP BY DATE(start), tag
-        ORDER BY day, minutes DESC
-    """)
+        WHERE DATE(start) = ? AND end IS NOT NULL
+        GROUP BY tag
+        HAVING minutes > 0
+    """, (date_str,))
     return c.fetchall()
-
 

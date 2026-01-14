@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from database.db import init_db, add_task, stop_task  # get_stats импортируем локально
+from database.db import init_db, add_task, stop_task  
+from datetime import datetime 
 
 
 from database.db import init_db, add_task, stop_task, get_stats 
@@ -39,6 +40,7 @@ class EmploymentDiary:
         btn_frame2.pack(pady=5)
         tk.Button(btn_frame2, text="🗄️ База данных", command=self.open_db_editor, bg="#9C27B0", fg="white", width=14).pack(side=tk.LEFT, padx=3)
         tk.Button(btn_frame2, text="📈 Графики", command=self.open_charts, bg="#FF5722", fg="white", width=14).pack(side=tk.LEFT, padx=3)
+
 
         # Список заданий
         tk.Label(self.root, text="Активные задания:").pack(pady=(20,5))
@@ -128,4 +130,5 @@ class EmploymentDiary:
         except:
             pass
         self.root.destroy()
+
 
