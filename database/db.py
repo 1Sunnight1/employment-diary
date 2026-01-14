@@ -15,3 +15,9 @@ def add_task(conn, tag, desc):
     c.execute("INSERT INTO tasks (tag, desc, start) VALUES (?, ?, ?)", (tag, desc, start))
     conn.commit()
     return c.lastrowid
+
+def stop_task(conn, task_id):  # ← НОВОЕ
+    end = datetime.now().isoformat()
+    c = conn.cursor()
+    c.execute("UPDATE tasks SET end = ? WHERE id = ?", (end, task_id))
+    conn.commit()
