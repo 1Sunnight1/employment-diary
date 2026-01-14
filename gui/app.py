@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from database.db import init_db, add_task
+from database.db import init_db, add_task, stop_task  # get_stats импортируем локально
+
+
+from database.db import init_db, add_task, stop_task, get_stats 
 
 class EmploymentDiary:
     def __init__(self, root):
@@ -27,6 +30,7 @@ class EmploymentDiary:
         tk.Button(btn_frame, text="Старт", command=self.start_task, bg="green", fg="white").pack(side=tk.LEFT, padx=5)
         tk.Button(btn_frame, text="Стоп", command=self.stop_task, bg="red", fg="white").pack(side=tk.LEFT, padx=5)
         tk.Button(btn_frame, text="Статистика", command=self.show_stats, bg="blue", fg="white").pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="🗄️ База данных", command=self.open_db_editor, bg="#9C27B0", fg="white").pack(side=tk.LEFT, padx=5)  # ← ЭТА СТРОКА НОВЫЙ
         
         # Список заданий
         tk.Label(self.root, text="Активные задания:").pack(pady=(20,5))
@@ -64,11 +68,52 @@ class EmploymentDiary:
             return
         
         task_id = list(self.active_tasks.keys())[selection[0]]
-        # TODO: добавить функцию stop_task в db.py
+        
+        # 🔥 КРИТИЧНО: вызов функции из БД
+        from database.db import stop_task
+        stop_task(self.conn, task_id)
+        
+        # Удаляем из списка
         del self.active_tasks[task_id]
         self.task_listbox.delete(selection[0])
         messagebox.showinfo("Успех", f"Задание #{task_id} остановлено!")
     
     def show_stats(self):
-        # TODO: окно статистики
-        messagebox.showinfo("Статистика", "Скоро будет готово!")
+        # ПРЯМАЯ проверка БД
+        c = self.conn.cursor()
+        c.execute("SELECT COUNT(*) FROM tasks WHERE end IS NOT NULL")
+        completed_count = c.fetchone()[0]
+        
+        if completed_count == 0:
+            tk.messagebox.showwarning("Статистика", "Нет завершенных заданий!\nСначала Старт→Стоп задания")
+            return
+        
+        # Окно
+        stats_window = tk.Toplevel(self.root)
+        stats_window.title("Статистика")
+        stats_window.geometry("450x350")
+        
+        # Заголовок + счетчик
+        tk.Label(stats_window, text=f"📊 Статистика ({completed_count} заданий)", 
+                font=("Arial", 14, "bold")).pack(pady=10)
+        
+        # Listbox вместо таблицы
+        listbox = tk.Listbox(stats_window, height=12, font=("Consolas", 10))
+        listbox.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        # Заполняем
+        c.execute("""
+            SELECT tag, COUNT(*) as count,
+                SUM((julianday(end) - julianday(start)) * 1440) as total_minutes
+            FROM tasks WHERE end IS NOT NULL GROUP BY tag
+        """)
+        
+        for tag, count, minutes in c.fetchall():
+            avg = minutes / count
+            listbox.insert(tk.END, f"{tag:10} | {count:2} заданий | {minutes:.0f} мин (ср. {avg:.1f})")
+
+    def open_db_editor(self):
+        from gui.database_editor import DatabaseEditor
+        DatabaseEditor(self, self.conn)
+
+
