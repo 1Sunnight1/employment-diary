@@ -79,38 +79,31 @@ class EmploymentDiary:
         messagebox.showinfo("Успех", f"Задание #{task_id} остановлено!")
     
     def show_stats(self):
-        # ПРЯМАЯ проверка БД
-        c = self.conn.cursor()
-        c.execute("SELECT COUNT(*) FROM tasks WHERE end IS NOT NULL")
-        completed_count = c.fetchone()[0]
+        from database.db import get_stats  # Новая точная функция
         
-        if completed_count == 0:
-            tk.messagebox.showwarning("Статистика", "Нет завершенных заданий!\nСначала Старт→Стоп задания")
+        stats_window = tk.Toplevel(self.root)
+        stats_window.title("📊 Статистика")
+        stats_window.geometry("500x400")
+        
+        stats = get_stats(self.conn)
+        
+        if not stats:
+            tk.Label(stats_window, text="Нет завершенных заданий!", font=("Arial", 12)).pack(expand=True)
             return
         
-        # Окно
-        stats_window = tk.Toplevel(self.root)
-        stats_window.title("Статистика")
-        stats_window.geometry("450x350")
+        listbox = tk.Listbox(stats_window, height=15, font=("Courier", 10))
+        listbox.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        # Заголовок + счетчик
-        tk.Label(stats_window, text=f"📊 Статистика ({completed_count} заданий)", 
-                font=("Arial", 14, "bold")).pack(pady=10)
+        total_tasks = sum(count for tag, count, completed, minutes in stats)
+        total_time = sum(minutes for tag, count, completed, minutes in stats)
         
-        # Listbox вместо таблицы
-        listbox = tk.Listbox(stats_window, height=12, font=("Consolas", 10))
-        listbox.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        for tag, count, completed, minutes in stats:
+            avg = minutes / count if count > 0 else 0
+            listbox.insert(tk.END, f"{tag:10}| {count:2} зад. | {minutes:.0f}мин | ср.{avg:.1f}м")
         
-        # Заполняем
-        c.execute("""
-            SELECT tag, COUNT(*) as count,
-                SUM((julianday(end) - julianday(start)) * 1440) as total_minutes
-            FROM tasks WHERE end IS NOT NULL GROUP BY tag
-        """)
-        
-        for tag, count, minutes in c.fetchall():
-            avg = minutes / count
-            listbox.insert(tk.END, f"{tag:10} | {count:2} заданий | {minutes:.0f} мин (ср. {avg:.1f})")
+        tk.Label(stats_window, text=f"Всего: {total_tasks} заданий, {total_time:.0f} минут", 
+                font=("Arial", 12, "bold")).pack(pady=10)
+
 
     def open_db_editor(self):
         from gui.database_editor import DatabaseEditor

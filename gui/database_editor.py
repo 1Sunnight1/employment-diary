@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from datetime import datetime  
 from database.db import init_db
 
 class DatabaseEditor:
@@ -126,3 +127,10 @@ class DatabaseEditor:
             self.conn.commit()
             self.refresh_table()
             messagebox.showinfo("Успех", "Задание удалено!")
+
+    def format_duration(self, start, end):
+            try:
+                duration = (datetime.fromisoformat(end) - datetime.fromisoformat(start)).total_seconds() / 60
+                return f"{duration:.1f}м"
+            except:
+                return "0м"

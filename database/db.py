@@ -23,12 +23,15 @@ def stop_task(conn, task_id):
     c.execute("UPDATE tasks SET end = ? WHERE id = ?", (end, task_id))
     conn.commit()
 
-def get_stats(conn):  # ← НОВОЕ
+def get_stats(conn):
     c = conn.cursor()
     c.execute("""
         SELECT tag, 
                COUNT(*) as count,
-               SUM((julianday(end) - julianday(start)) * 24 * 60) as total_minutes
+               COUNT(end) as completed_count,
+               SUM(CASE WHEN end IS NOT NULL 
+                       THEN (strftime('%s', end) - strftime('%s', start)) / 60.0 
+                       ELSE 0 END) as total_minutes
         FROM tasks 
         WHERE end IS NOT NULL 
         GROUP BY tag 
