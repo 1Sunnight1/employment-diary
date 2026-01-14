@@ -38,3 +38,43 @@ def get_stats(conn):
         ORDER BY total_minutes DESC
     """)
     return c.fetchall()
+
+def get_daily_stats(conn):
+    """Статистика по дням (последние 30 дней)"""
+    c = conn.cursor()
+    c.execute("""
+        SELECT DATE(start) as day,
+               COUNT(*) as tasks,
+               SUM((strftime('%s', end) - strftime('%s', start)) / 60.0) as total_minutes
+        FROM tasks 
+        WHERE end IS NOT NULL AND start > date('now', '-30 days')
+        GROUP BY DATE(start)
+        ORDER BY day
+    """"")
+    return c.fetchall()
+
+def get_tag_pie_data(conn):
+    """Данные для круговой диаграммы по тегам"""
+    c = conn.cursor()
+    c.execute("""
+        SELECT tag, SUM((strftime('%s', end) - strftime('%s', start)) / 60.0) as minutes
+        FROM tasks WHERE end IS NOT NULL
+        GROUP BY tag
+        ORDER BY minutes DESC
+        LIMIT 8
+    """)
+    return c.fetchall()
+
+def get_daily_tag_stats(conn):
+    c = conn.cursor()
+    c.execute("""
+        SELECT DATE(start) as day, tag,
+               SUM((strftime('%s', end) - strftime('%s', start)) / 60.0) as minutes
+        FROM tasks 
+        WHERE end IS NOT NULL AND start > date('now', '-30 days')
+        GROUP BY DATE(start), tag
+        ORDER BY day, minutes DESC
+    """)
+    return c.fetchall()
+
+

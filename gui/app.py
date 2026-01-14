@@ -11,8 +11,12 @@ class EmploymentDiary:
         self.root.title("Employment Diary")
         self.root.geometry("500x500")
         self.conn = init_db()
-        self.active_tasks = {}  # {task_id: "tag - desc"}
+        self.active_tasks = {}
         self.setup_ui()
+        
+        # Закрытие БД при закрытии главного окна
+        self.root.protocol("WM_DELETE_WINDOW", self.on_main_closing)
+
     
     def setup_ui(self):
         # Поля ввода
@@ -25,13 +29,17 @@ class EmploymentDiary:
         self.desc_entry.pack()
         
         # Кнопки
-        btn_frame = tk.Frame(self.root)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Старт", command=self.start_task, bg="green", fg="white").pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Стоп", command=self.stop_task, bg="red", fg="white").pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Статистика", command=self.show_stats, bg="blue", fg="white").pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="🗄️ База данных", command=self.open_db_editor, bg="#9C27B0", fg="white").pack(side=tk.LEFT, padx=5)  # ← ЭТА СТРОКА НОВЫЙ
-        
+        btn_frame1 = tk.Frame(self.root)
+        btn_frame1.pack(pady=5)
+        tk.Button(btn_frame1, text="Старт", command=self.start_task, bg="green", fg="white", width=12).pack(side=tk.LEFT, padx=3)
+        tk.Button(btn_frame1, text="Стоп", command=self.stop_task, bg="red", fg="white", width=12).pack(side=tk.LEFT, padx=3)
+        tk.Button(btn_frame1, text="Статистика", command=self.show_stats, bg="blue", fg="white", width=12).pack(side=tk.LEFT, padx=3)
+
+        btn_frame2 = tk.Frame(self.root)
+        btn_frame2.pack(pady=5)
+        tk.Button(btn_frame2, text="🗄️ База данных", command=self.open_db_editor, bg="#9C27B0", fg="white", width=14).pack(side=tk.LEFT, padx=3)
+        tk.Button(btn_frame2, text="📈 Графики", command=self.open_charts, bg="#FF5722", fg="white", width=14).pack(side=tk.LEFT, padx=3)
+
         # Список заданий
         tk.Label(self.root, text="Активные задания:").pack(pady=(20,5))
         self.task_listbox = tk.Listbox(self.root, height=12)
@@ -69,7 +77,7 @@ class EmploymentDiary:
         
         task_id = list(self.active_tasks.keys())[selection[0]]
         
-        # 🔥 КРИТИЧНО: вызов функции из БД
+        #  вызов функции из БД
         from database.db import stop_task
         stop_task(self.conn, task_id)
         
@@ -79,7 +87,7 @@ class EmploymentDiary:
         messagebox.showinfo("Успех", f"Задание #{task_id} остановлено!")
     
     def show_stats(self):
-        from database.db import get_stats  # Новая точная функция
+        from database.db import get_stats  
         
         stats_window = tk.Toplevel(self.root)
         stats_window.title("📊 Статистика")
@@ -109,4 +117,15 @@ class EmploymentDiary:
         from gui.database_editor import DatabaseEditor
         DatabaseEditor(self, self.conn)
 
+    def open_charts(self):
+        from gui.charts import ChartsView
+        ChartsView(self, self.conn)
+
+    def on_main_closing(self):
+        """Закрытие всех соединений при выходе"""
+        try:
+            self.conn.close()
+        except:
+            pass
+        self.root.destroy()
 

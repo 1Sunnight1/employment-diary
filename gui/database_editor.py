@@ -7,7 +7,11 @@ class DatabaseEditor:
     def __init__(self, parent, conn):
         self.conn = conn
         self.parent = parent
-        
+        self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def on_closing(self):
+        self.window.destroy()
+
         # Главное окно редактора
         self.window = tk.Toplevel(parent.root)
         self.window.title("🗄️ Редактор базы данных")
